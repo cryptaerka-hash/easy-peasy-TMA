@@ -5,22 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Lean TMA — Демо</title>
 
+  <!-- 1. Telegram SDK — всегда первым -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+  <!-- 2. Конфиг (определяет тему по ?theme=) -->
   <script src="./js/config.js"></script>
 
+  <!-- 3. Tailwind + иконки -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="./css/style.css">
 
+  <!-- 4. Логика -->
   <script src="./js/telegram.js"></script>
   <script src="./js/theme.js"></script>
 </head>
 <body style="margin:0;background:var(--tg-bg,#fff);color:var(--tg-text,#1a1a1a);
              font-family:-apple-system,system-ui,sans-serif;">
 
+  <!-- Переключатель тем (только для демо) -->
   <div id="theme-switcher" style="display:flex;gap:6px;justify-content:center;padding:10px 0;"></div>
 
+  <!-- Шапка с брендом -->
   <header style="display:flex;align-items:center;gap:10px;padding:0 16px 16px;">
     <div style="width:40px;height:40px;border-radius:14px;background:var(--brand-primary);
                 display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -34,42 +40,49 @@
 
   <main style="padding:0 16px 90px;">
 
+    <!-- ЭКРАН 1: ЗАПИСЬ -->
     <section id="screen-booking">
       <p style="font-size:13px;color:var(--tg-hint,#999);margin:0 0 8px;">Выберите услугу</p>
       <div id="services-list"></div>
 
       <p style="font-size:13px;color:var(--tg-hint,#999);margin:16px 0 8px;">Специалист</p>
-      <div id="staff-list" style="display:flex;gap:8px;"></div>
+      <div id="staff-list" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
 
       <p style="font-size:13px;color:var(--tg-hint,#999);margin:16px 0 8px;">Время — сегодня</p>
       <div id="time-slots" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"></div>
 
       <button id="book-btn" style="width:100%;margin-top:20px;padding:14px;border-radius:18px;
-        background:var(--brand-primary);color:#fff;border:none;font-size:15px;font-weight:600;">
+        background:var(--brand-primary);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;">
         Записаться · <span id="book-price"></span>
       </button>
     </section>
 
+    <!-- ЭКРАН 2: МОИ ЗАПИСИ -->
     <section id="screen-bookings" style="display:none;">
       <p style="font-size:16px;font-weight:600;margin:0 0 12px;">Мои записи</p>
       <div id="my-bookings-content"></div>
     </section>
 
-    <section id="screen-vaqf" style="display:none;">
-      <div id="vaqf-content"></div>
+    <!-- ЭКРАН 3: ИСТОРИЯ ВИЗИТОВ (вместо Vaqf) -->
+    <section id="screen-history" style="display:none;">
+      <p style="font-size:16px;font-weight:600;margin:0 0 4px;">Мои визиты</p>
+      <p style="font-size:13px;color:var(--tg-hint,#999);margin:0 0 16px;">История и повторная запись в 1 клик</p>
+      <div id="history-content"></div>
     </section>
 
+    <!-- ЭКРАН 4: КАБИНЕТ ВЛАДЕЛЬЦА -->
     <section id="screen-owner" style="display:none;">
       <p data-business-name style="font-size:16px;font-weight:600;margin:0 0 12px;"></p>
       <div id="owner-stats" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;"></div>
       <button onclick="showAppPopup('📅 Полный календарь','Доступно в полной версии после подключения.')"
         style="width:100%;margin-bottom:8px;padding:12px;border-radius:14px;border:1px solid var(--tg-secondary-bg,#eee);
-               background:transparent;color:var(--tg-text,#1a1a1a);">Полный календарь</button>
+               background:transparent;color:var(--tg-text,#1a1a1a);font-size:14px;cursor:pointer;">Полный календарь</button>
       <button onclick="showAppPopup('👥 Список клиентов','Доступно в полной версии после подключения.')"
         style="width:100%;padding:12px;border-radius:14px;border:1px solid var(--tg-secondary-bg,#eee);
-               background:transparent;color:var(--tg-text,#1a1a1a);">Список клиентов</button>
+               background:transparent;color:var(--tg-text,#1a1a1a);font-size:14px;cursor:pointer;">Список клиентов</button>
     </section>
 
+    <!-- ЭКРАН 5: О ПЛАТФОРМЕ -->
     <section id="screen-about" style="display:none;">
       <p style="font-size:16px;font-weight:600;margin:0 0 8px;">Lean TMA для вашего бизнеса</p>
       <p style="font-size:14px;color:var(--tg-hint,#999);line-height:1.6;margin:0 0 16px;">
@@ -85,9 +98,9 @@
         <li>Своё приложение и Telegram-бот</li>
         <li>Без ограничений по записям</li>
         <li>Кабинет владельца</li>
-        <li>Vaqf-механизм для PR</li>
+        <li>История визитов + повтор в 1 клик</li>
       </ul>
-      <a href="https://t.me/LeanTMADemoBot" style="display:block;text-align:center;padding:14px;
+      <a href="https://t.me/your_agency_username" style="display:block;text-align:center;padding:14px;
         border-radius:18px;background:var(--brand-primary);color:#fff;font-weight:600;text-decoration:none;">
         Подключить
       </a>
@@ -95,18 +108,25 @@
 
   </main>
 
+  <!-- НИЖНЕЕ МЕНЮ -->
   <nav id="bottom-nav" style="position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;
-       padding:10px 0;background:var(--tg-bg,#fff);border-top:1px solid var(--tg-secondary-bg,#eee);">
+       padding:10px 0 calc(10px + env(safe-area-inset-bottom));
+       background:var(--tg-bg,#fff);border-top:1px solid var(--tg-secondary-bg,#eee);">
     <button data-screen="booking" style="display:flex;flex-direction:column;align-items:center;gap:2px;
-      background:none;border:none;font-size:11px;"><i class="ti ti-calendar" style="font-size:20px;"></i>Запись</button>
+      background:none;border:none;font-size:11px;cursor:pointer;color:var(--tg-hint,#999);">
+      <i class="ti ti-calendar" style="font-size:20px;"></i>Запись</button>
     <button data-screen="bookings" style="display:flex;flex-direction:column;align-items:center;gap:2px;
-      background:none;border:none;font-size:11px;"><i class="ti ti-list" style="font-size:20px;"></i>Записи</button>
-    <button data-screen="vaqf" style="display:flex;flex-direction:column;align-items:center;gap:2px;
-      background:none;border:none;font-size:11px;"><i class="ti ti-heart" style="font-size:20px;"></i>Vaqf</button>
+      background:none;border:none;font-size:11px;cursor:pointer;color:var(--tg-hint,#999);">
+      <i class="ti ti-list" style="font-size:20px;"></i>Записи</button>
+    <button data-screen="history" style="display:flex;flex-direction:column;align-items:center;gap:2px;
+      background:none;border:none;font-size:11px;cursor:pointer;color:var(--tg-hint,#999);">
+      <i class="ti ti-clock-history" style="font-size:20px;"></i>История</button>
     <button data-screen="owner" style="display:flex;flex-direction:column;align-items:center;gap:2px;
-      background:none;border:none;font-size:11px;"><i class="ti ti-chart-bar" style="font-size:20px;"></i>Кабинет</button>
+      background:none;border:none;font-size:11px;cursor:pointer;color:var(--tg-hint,#999);">
+      <i class="ti ti-chart-bar" style="font-size:20px;"></i>Кабинет</button>
     <button data-screen="about" style="display:flex;flex-direction:column;align-items:center;gap:2px;
-      background:none;border:none;font-size:11px;"><i class="ti ti-info-circle" style="font-size:20px;"></i>О нас</button>
+      background:none;border:none;font-size:11px;cursor:pointer;color:var(--tg-hint,#999);">
+      <i class="ti ti-info-circle" style="font-size:20px;"></i>О нас</button>
   </nav>
 
 </body>
