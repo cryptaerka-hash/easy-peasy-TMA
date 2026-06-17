@@ -1,0 +1,1 @@
+* { box-sizing: border-box; } body { -webkit-tap-highlight-color: transparent; } button { font-family: inherit; } #bottom-nav button { transition: color 0.15s ease; }
