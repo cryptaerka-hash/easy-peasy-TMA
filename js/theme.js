@@ -3,27 +3,60 @@
 // =========================================================
 
 let selectedService = CONFIG.services[0];
-let selectedStaff = CONFIG.staff[0];
-let selectedSlot = CONFIG.slots.find(s => !CONFIG.busy_slots.includes(s));
+let selectedStaff   = CONFIG.staff[0];
+let selectedSlot    = CONFIG.slots.find(s => !CONFIG.busy_slots.includes(s));
 
 // ============================================
-// 0. SUPABASE CLIENT (лёгкий fetch-враппер)
+// 0. SUPABASE — сохранение записи
 // ============================================
-const sb = {
-  async insert(table, data) {
-    const res = await fetch(`${CONFIG.supabase.url}/rest/v1/${table}`, {
+async function saveBookingToSupabase() {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const [h, m] = selectedSlot.split(":");
+    const startTime = new Date(`${today}T${h}:${m}:00+05:00`).toISOString();
+    const endTime   = new Date(
+      new Date(`${today}T${h}:${m}:00+05:00`).getTime() + selectedService.duration * 60000
+    ).toISOString();
+
+    const tgUser = window.TG_USER || {};
+
+    const payload = {
+      business_id:          CONFIG.business_id,
+      staff_id:             selectedStaff.id,
+      service_id:           selectedService.id,
+      customer_telegram_id: tgUser.id   || null,
+      customer_name:        tgUser.first_name || "Демо-клиент",
+      start_time:           startTime,
+      end_time:             endTime,
+      status:               "confirmed"
+    };
+
+    console.log("[Supabase] Saving booking:", JSON.stringify(payload));
+
+    const res = await fetch(`${CONFIG.supabase.url}/rest/v1/bookings`, {
       method: "POST",
       headers: {
-        "apikey": CONFIG.supabase.anon_key,
+        "apikey":        CONFIG.supabase.anon_key,
         "Authorization": `Bearer ${CONFIG.supabase.anon_key}`,
-        "Content-Type": "application/json",
-        "Prefer": "return=representation"
+        "Content-Type":  "application/json",
+        "Prefer":        "return=representation"
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
-    return res.ok ? await res.json() : null;
+
+    const text = await res.text();
+    console.log("[Supabase] Response status:", res.status);
+    console.log("[Supabase] Response body:", text);
+
+    if (res.ok) {
+      console.log("[Supabase] ✅ Booking saved!");
+    } else {
+      console.error("[Supabase] ❌ Error:", res.status, text);
+    }
+  } catch (err) {
+    console.error("[Supabase] ❌ Exception:", err);
   }
-};
+}
 
 // ============================================
 // 0b. УНИВЕРСАЛЬНЫЙ ПОПАП
@@ -73,7 +106,9 @@ function renderThemeSwitcher() {
     a.href = "?theme=" + key;
     a.textContent = labels[key] || key;
     a.style.cssText = "padding:6px 10px;border-radius:999px;font-size:16px;text-decoration:none;" +
-      (key === CONFIG.theme_key ? "border:2px solid var(--brand-primary);" : "border:1px solid var(--tg-secondary-bg,#eee);opacity:.5;");
+      (key === CONFIG.theme_key
+        ? "border:2px solid var(--brand-primary);"
+        : "border:1px solid var(--tg-secondary-bg,#eee);opacity:.5;");
     wrap.appendChild(a);
   });
 }
@@ -151,7 +186,7 @@ function renderTimeSlots() {
 }
 
 // ============================================
-// 6. КНОПКА "ЗАПИСАТЬСЯ" — реальное сохранение в Supabase
+// 6. КНОПКА "ЗАПИСАТЬСЯ"
 // ============================================
 function updateBookButton() {
   const priceEl = document.getElementById("book-price");
@@ -166,38 +201,19 @@ function initBookButton() {
   const btn = document.getElementById("book-btn");
   if (!btn) return;
 
-  btn.onclick = async () => {
+  btn.onclick = function() {
     if (typeof hapticSuccess === "function") hapticSuccess();
 
-    // Показываем попап сразу — не ждём Supabase (UX быстрый)
+    // Показываем попап сразу
     showAppPopup(
       "✅ Запись подтверждена",
-      `${selectedService.name}\n${selectedStaff.name} · сегодня, ${selectedSlot}\n\nНапоминание придёт автоматически за 2 часа до приёма.`,
+      selectedService.name + "\n" + selectedStaff.name + " · сегодня, " + selectedSlot + "\n\nНапоминание придёт автоматически за 2 часа до приёма.",
       [{ id: "ok", type: "ok", text: "Отлично" }]
     );
 
-    // Сохраняем в Supabase в фоне (только если есть business_id)
-    if (CONFIG.business_id && CONFIG.supabase) {
-      safeSet(async () => {
-        const today = new Date().toISOString().split("T")[0];
-        const [h, m] = selectedSlot.split(":");
-        const startTime = new Date(`${today}T${h}:${m}:00+05:00`).toISOString();
-        const endTime = new Date(
-          new Date(`${today}T${h}:${m}:00+05:00`).getTime() + selectedService.duration * 60000
-        ).toISOString();
-
-        const tgUser = window.TG_USER || {};
-        await sb.insert("bookings", {
-          business_id: CONFIG.business_id,
-          staff_id:    selectedStaff.id,
-          service_id:  selectedService.id,
-          customer_telegram_id: tgUser.id || null,
-          customer_name: tgUser.first_name || "Демо-клиент",
-          start_time: startTime,
-          end_time:   endTime,
-          status: "confirmed"
-        });
-      }, "supabase-booking");
+    // Сохраняем в Supabase (только для dental темы где есть real business_id)
+    if (CONFIG.business_id) {
+      saveBookingToSupabase();
     }
   };
 }
@@ -208,9 +224,9 @@ function initBookButton() {
 function renderMyBookings() {
   const wrap = document.getElementById("my-bookings-content");
   if (!wrap) return;
-  const svc = CONFIG.services[0];
+  const svc   = CONFIG.services[0];
   const staff = CONFIG.staff[0];
-  const slot = CONFIG.slots.find(s => !CONFIG.busy_slots.includes(s));
+  const slot  = CONFIG.slots.find(s => !CONFIG.busy_slots.includes(s));
   wrap.innerHTML = `
     <div style="border:1px solid var(--tg-secondary-bg,#eee);border-radius:16px;padding:14px;margin-bottom:12px;">
       <p style="margin:0 0 4px;font-size:14px;font-weight:500;">${svc.name}</p>
@@ -225,10 +241,10 @@ function renderMyBookings() {
   document.getElementById("reminder-btn").onclick = () => {
     showAppPopup(
       "⏰ Напоминание",
-      `Через 2 часа у вас приём:\n${svc.name} — ${CONFIG.name}\n${staff.name}, сегодня в ${slot}\n📍 ${CONFIG.tagline}`,
+      "Через 2 часа у вас приём:\n" + svc.name + " — " + CONFIG.name + "\n" + staff.name + ", сегодня в " + slot + "\n📍 " + CONFIG.tagline,
       [
-        { id: "confirm", type: "default", text: "Подтвердить" },
-        { id: "cancel", type: "destructive", text: "Отменить" }
+        { id: "confirm", type: "default",     text: "Подтвердить" },
+        { id: "cancel",  type: "destructive",  text: "Отменить"    }
       ]
     );
   };
@@ -248,7 +264,7 @@ function renderHistory() {
   wrap.innerHTML = "";
   past.forEach((visit, i) => {
     const card = document.createElement("div");
-    card.style.cssText = `border:1px solid var(--tg-secondary-bg,#eee);border-radius:16px;padding:14px;margin-bottom:10px;`;
+    card.style.cssText = "border:1px solid var(--tg-secondary-bg,#eee);border-radius:16px;padding:14px;margin-bottom:10px;";
     const nameShort = visit.staff.name.split(" ").slice(0, 2).join(" ");
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -256,7 +272,7 @@ function renderHistory() {
           <p style="margin:0;font-size:14px;font-weight:500;">${visit.svc.name}</p>
           <p style="margin:3px 0 0;font-size:13px;color:var(--tg-hint,#999);">${visit.staff.name} · ${visit.date}</p>
         </div>
-        <p style="margin:0;font-size:13px;font-weight:500;color:var(--tg-hint,#999);">
+        <p style="margin:0;font-size:13px;color:var(--tg-hint,#999);">
           ${visit.svc.price > 0 ? visit.svc.price.toLocaleString("ru-RU") + " сум" : "бесплатно"}
         </p>
       </div>
@@ -270,16 +286,13 @@ function renderHistory() {
     btn.onclick = () => {
       const idx = parseInt(btn.dataset.idx);
       selectedService = past[idx].svc;
-      selectedStaff = past[idx].staff;
-      safeSet(renderServices, "repeat-services");
-      safeSet(renderStaff, "repeat-staff");
-      safeSet(renderTimeSlots, "repeat-slots");
-      safeSet(updateBookButton, "repeat-price");
+      selectedStaff   = past[idx].staff;
+      renderServices(); renderStaff(); renderTimeSlots(); updateBookButton();
       showScreen("booking");
       if (typeof hapticTap === "function") hapticTap();
       showAppPopup(
         "✅ Данные заполнены",
-        `${past[idx].svc.name}\n${past[idx].staff.name}\n\nОсталось выбрать удобное время — и готово.`,
+        past[idx].svc.name + "\n" + past[idx].staff.name + "\n\nОсталось выбрать удобное время.",
         [{ id: "ok", type: "ok", text: "Выбрать время" }]
       );
     };
@@ -294,9 +307,9 @@ function renderOwnerStats() {
   if (!wrap) return;
   const s = CONFIG.owner_stats;
   const items = [
-    ["Записей на сегодня", s.bookings_today],
-    ["Ожидается выручка", s.revenue_today],
-    ["Свободных окон", s.free_slots],
+    ["Записей на сегодня",     s.bookings_today],
+    ["Ожидается выручка",      s.revenue_today],
+    ["Свободных окон",         s.free_slots],
     ["Новых клиентов за неделю", s.new_clients_week]
   ];
   wrap.innerHTML = items.map(([label, val]) => `
